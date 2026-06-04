@@ -1,0 +1,103 @@
+variable "confluent_cloud_api_key" {
+  description = "Confluent Cloud API Key"
+  type        = string
+  sensitive   = true
+}
+
+variable "confluent_cloud_api_secret" {
+  description = "Confluent Cloud API Secret"
+  type        = string
+  sensitive   = true
+}
+
+variable "environment_name" {
+  description = "Name of the Confluent Cloud environment"
+  type        = string
+  default     = "production"
+}
+
+variable "cluster_name" {
+  description = "Name of the Enterprise Kafka cluster"
+  type        = string
+  default     = "enterprise-cluster"
+}
+
+variable "availability" {
+  description = "Availability zone configuration (SINGLE_ZONE, MULTI_ZONE)"
+  type        = string
+  default     = "MULTI_ZONE"
+  
+  validation {
+    condition     = contains(["SINGLE_ZONE", "MULTI_ZONE"], var.availability)
+    error_message = "Availability must be either SINGLE_ZONE or MULTI_ZONE."
+  }
+}
+
+variable "cloud_provider" {
+  description = "Cloud provider (AWS, AZURE, GCP)"
+  type        = string
+  default     = "AWS"
+  
+  validation {
+    condition     = contains(["AWS", "AZURE", "GCP"], var.cloud_provider)
+    error_message = "Cloud provider must be AWS, AZURE, or GCP."
+  }
+}
+
+variable "region" {
+  description = "AWS region for the cluster (e.g., us-east-1, eu-west-1)"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "owner_email" {
+  description = "Email of the resource owner; applied as tag 'owner_email' on all AWS resources"
+  type        = string
+}
+
+variable "vpc_cidr" {
+  description = "CIDR block for the VPC"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "vpc_endpoint_id" {
+  description = "AWS VPC endpoint ID for the PrivateLink attachment connection (Interface endpoint ID)."
+  type        = string
+  default     = ""
+}
+
+
+variable "bastion_ssh_cidr_blocks" {
+  description = "CIDR blocks allowed to SSH to the bastion host (e.g. your office IP)"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]  # Restrict this in production!
+}
+
+variable "prefix" {
+  description = "Prefix for resource names"
+  type        = string
+}
+
+variable "cp_node_count" {
+  description = "Number of CP-Cluster node EC2 instances to create. Instances are distributed across available private subnets."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.cp_node_count >= 0 && var.cp_node_count <= 10
+    error_message = "cp_node_count must be between 0 and 10."
+  }
+}
+
+variable "cp_node_platform_image_tag" {
+  description = "Docker image tag for Confluent Platform images on cp nodes (e.g. 7.6.0, latest)"
+  type        = string
+  default     = "latest"
+}
+
+variable "usm_ccloud_endpoint" {
+  description = "Confluent Cloud API host for USM agent (e.g. api.eu-north-1.AWS.private.confluent.cloud). Used for Route53 DNS and cp node config."
+  type        = string
+  default     = "FRONTDOOR_URL minus the leading 'api'"
+}

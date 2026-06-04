@@ -1,0 +1,39 @@
+# Copy this file to terraform.tfvars and fill in your values
+# terraform.tfvars is in .gitignore and should not be committed
+
+# Confluent Cloud API credentials
+# Get these from: https://confluent.cloud/settings/api-keys
+confluent_cloud_api_key    = "YOUR_API_KEY"
+confluent_cloud_api_secret = "YOUR_API_SECRET"
+
+# Environment configuration
+environment_name = "production"
+cluster_name     = "enterprise-cluster"
+
+# Cluster configuration
+availability   = "MULTI_ZONE"  # SINGLE_ZONE or MULTI_ZONE
+cloud_provider = "AWS"
+region         = "us-east-1"   # AWS region
+
+# AWS tagging (required)
+owner_email = "your-email@example.com"
+
+# AWS VPC configuration
+vpc_cidr = "10.0.0.0/16"
+
+# CP node configuration
+cp_node_count = 1  # Number of cp node EC2 instances (0-10, distributed across subnets)
+# cp_node_platform_image_tag = "latest"  # Confluent Platform image tag (e.g. 7.6.0)
+
+# Confluent Cloud API host for USM agent (PrivateLink)
+usm_ccloud_endpoint = "api.eu-north-1.AWS.private.confluent.cloud"
+
+# Bastion SSH access (who can SSH to the bastion host)
+# Restrict to your IP in production! Example: ["1.2.3.4/32"]
+bastion_ssh_cidr_blocks = ["0.0.0.0/0"]
+
+# SSH: the aws_keypair module creates a key pair and writes the private key under terraform/aws/ — there is no aws_key_pair_name root variable.
+# If terraform.tfvars still has aws_key_pair_name (or any duplicate keys), remove those lines; unsupported or duplicate arguments make plan/apply fail.
+
+# Used in resource naming
+prefix = "myTest"
