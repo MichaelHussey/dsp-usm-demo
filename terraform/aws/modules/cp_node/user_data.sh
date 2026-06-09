@@ -19,6 +19,14 @@ sudo usermod -aG docker ec2-user
 sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 
+# The version of buildx in the image is too old for the docker-compose file to use, so we need to install it manually
+# see https://github.com/amazonlinux/amazon-linux-2023/issues/1032
+sudo mkdir -p ~/.docker/cli-plugins
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+BUILDX_URL=$(curl -s https://api.github.com/repos/docker/buildx/releases/latest | grep "browser_download_url.*linux-$ARCH" | cut -d '"' -f 4)
+sudo curl -L $BUILDX_URL -o ~/.docker/cli-plugins/docker-buildx
+sudo chmod +x ~/.docker/cli-plugins/docker-buildx
+
 # Create directory for application and MQTT config
 mkdir -p /opt/usm-demo/mosquitto/{config,data,log}
 cd /opt/usm-demo
@@ -51,6 +59,7 @@ cat > /opt/usm-demo/Dockerfile-connect-install <<'CONNECTINSTALL'
 FROM confluentinc/cp-server-connect-base:latest-ubi8
 ENV CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
 RUN /usr/bin/confluent-hub install confluentinc/kafka-connect-mqtt:latest --no-prompt
+RUN /usr/bin/confluent-hub install confluentinc/kafka-connect-datagen:latest --no-prompt
 RUN /usr/bin/confluent-hub install confluentinc/kafka-connect-replicator:latest --no-prompt
 RUN /usr/bin/connect-plugin-path sync-manifests --plugin-path /usr/share/confluent-hub-components
 CONNECTINSTALL
@@ -120,7 +129,7 @@ services:
       KAFKA_CONFLUENT_CLIENT_TOPIC_METRICS_MANAGER: 'org.apache.kafka.server.metrics.PlatformClientTopicMetricsManager'
     restart: unless-stopped
 
-  connect-native:
+  connect:
     image: ${connect_image}_local
     build:
       context: /opt/usm-demo
@@ -232,6 +241,7 @@ export CC_BOOTSTRAP="${bootstrap_endpoint}"
 export CC_API_KEY="${api_key}"
 export CC_API_SECRET="${api_secret}"
 export CLUSTER_ID="${cluster_id}"
+export AWS_REGION="${aws_region}"
 echo "Confluent Cloud environment variables set!"
 echo "Bootstrap: \$CC_BOOTSTRAP"
 echo "KRaft CLUSTER_ID (broker): \$CLUSTER_ID"
@@ -360,3 +370,22 @@ fi
 
 # Idempotent: ensure ec2-user is in docker group after dnf/docker activity in this script
 sudo usermod -aG docker ec2-user
+
+# Deploy some DataGen 
+cat >> /opt/usm-demo/deploy-sample-data.sh <<'DEPLOYSAMPLEDATABODY'
+docker-compose exec connect curl -X POST -H "Content-Type: application/json" --data '{"name": "datagen-source", "config": {"connector.class": "io.confluent.kafka.connect.datagen.DatagenConnector", "kafka.topic": "orders", "quickstart": "orders", "max.interval": 1000, "iterations": 1000000, "tasks.max": "1"}}' http://connect:8083/connectors
+DEPLOYSAMPLEDATABODY
+
+chmod +x /opt/usm-demo/deploy-sample-data.sh
+chown -R ec2-user:ec2-user /opt/usm-demo
+
+# Wait for the Connect worker to be ready 
+echo "Waiting for the Connect worker to be ready..."
+while ! docker-compose exec connect curl -s http://connect:8083/connector-plugins | grep -q "DatagenConnector"; do
+  echo "Connect worker not ready yet..."
+  sleep 10
+done
+echo "Connect worker is ready!"
+
+# Deploy the sample data
+/opt/usm-demo/deploy-sample-data.sh

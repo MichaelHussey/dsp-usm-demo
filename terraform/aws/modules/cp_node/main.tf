@@ -25,23 +25,25 @@ resource "aws_instance" "cp_node" {
   root_block_device {
     volume_size = 30 # GB
   }
-  user_data = templatefile("${path.module}/user_data.sh", {
-    bootstrap_endpoint     = var.bootstrap_endpoint
-    api_key                = var.api_key
-    api_secret             = var.api_secret
-    api_key_secret_b64     = base64encode("${var.api_key}:${var.api_secret}")
-    usm_api_key_secret_b64 = base64encode("${var.usm_api_key}:${var.usm_api_secret}")
-    cc_environment_id      = var.cc_environment_id
-    usm_ccloud_endpoint   = var.usm_ccloud_endpoint
-    broker_image          = var.broker_image
-    connect_image         = var.connect_image
-    schema_registry_image = var.schema_registry_image
-    aws_region            = var.aws_region
-    cluster_id             = random_uuid.kraft_cluster.result
-  })
+  user_data_base64 = base64gzip(templatefile("${path.module}/user_data.sh", {
+    bootstrap_endpoint       = var.bootstrap_endpoint
+    api_key                  = var.api_key
+    api_secret               = var.api_secret
+    api_key_secret_b64       = base64encode("${var.api_key}:${var.api_secret}")
+    usm_api_key_secret_b64   = base64encode("${var.usm_api_key}:${var.usm_api_secret}")
+    cc_environment_id        = var.cc_environment_id
+    usm_ccloud_endpoint      = var.usm_ccloud_endpoint
+    broker_image             = var.broker_image
+    connect_image            = var.connect_image
+    schema_registry_image    = var.schema_registry_image
+    aws_region               = var.aws_region
+    cluster_id               = random_uuid.kraft_cluster.result
+  }))
 
   tags = {
     Name       = "${var.cluster_name}-cp-node-${var.instance_index}"
     cluster_id = random_uuid.kraft_cluster.result
   }
 }
+
+

@@ -110,6 +110,8 @@ Restrict `bastion_ssh_cidr_blocks` in production. The EC2 instance has Kafka cli
 
 ## CP Node Deployment
 
+During `terraform apply`, each CP node is registered with Confluent Cloud USM via a local script (`scripts/register_usm_agent.sh`). This requires `curl` and `jq` on the machine running Terraform.
+
 CP node EC2 instances are configured to:
 - Install docker and docker-compose
 - Pull Confluent Platform images from Docker Hub

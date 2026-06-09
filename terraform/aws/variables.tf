@@ -45,7 +45,7 @@ variable "cloud_provider" {
 }
 
 variable "region" {
-  description = "AWS region for the cluster (e.g., us-east-1, eu-west-1)"
+  description = "AWS region for the cluster (e.g., us-east-1, eu-west-1). NB USM ingress for telemetry reporting is currently only available in a reduced set of regions. See [list of supported regions](https://docs.confluent.io/cloud/current/usm/register/usm-network.html#aws-supported-regions)"
   type        = string
   default     = "us-east-1"
 }

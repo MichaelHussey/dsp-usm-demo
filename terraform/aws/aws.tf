@@ -110,7 +110,7 @@ module "cp_node" {
   source = "./modules/cp_node"
   count  = var.cp_node_count
 
-  cluster_name          = var.cluster_name
+  cluster_name          = "USM Demo cluster no ${count.index + 1}"
   instance_index        = count.index
   subnet_id             = aws_subnet.private[count.index % length(aws_subnet.private)].id
   security_group_ids    = [aws_security_group.ec2.id]
