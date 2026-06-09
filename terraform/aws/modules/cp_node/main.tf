@@ -21,6 +21,7 @@ resource "aws_instance" "cp_node" {
   subnet_id              = var.subnet_id
   vpc_security_group_ids = var.security_group_ids
   key_name                    = var.key_name
+  iam_instance_profile        = aws_iam_instance_profile.cp_node.name
   user_data_replace_on_change = true
   root_block_device {
     volume_size = 30 # GB
@@ -36,8 +37,12 @@ resource "aws_instance" "cp_node" {
     broker_image             = var.broker_image
     connect_image            = var.connect_image
     schema_registry_image    = var.schema_registry_image
+    usm_agent_image          = var.usm_agent_image
+    mqtt_image               = var.mqtt_image
+    ecr_registry             = var.ecr_registry
     aws_region               = var.aws_region
     cluster_id               = random_uuid.kraft_cluster.result
+    ssm_parameter_name       = aws_ssm_parameter.connect_cluster_id.name
   }))
 
   tags = {

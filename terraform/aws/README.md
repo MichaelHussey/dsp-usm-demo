@@ -110,11 +110,19 @@ Restrict `bastion_ssh_cidr_blocks` in production. The EC2 instance has Kafka cli
 
 ## CP Node Deployment
 
-During `terraform apply`, each CP node is registered with Confluent Cloud USM via a local script (`scripts/register_usm_agent.sh`). This requires `curl` and `jq` on the machine running Terraform.
+During `terraform apply`, each CP node Kafka cluster is registered with Confluent Cloud USM via `scripts/register_usm_kafka_cluster.sh` (requires `curl` and `jq`). Connect cluster registration is optional: set `fetch_connect_cluster_ids = true` to poll SSM for Connect IDs and run `scripts/register_usm_connect_cluster.sh` (also requires the AWS CLI; may wait several minutes).
+
+CP node images are stored in ECR so instances pull from your private registry instead of Docker Hub on every deploy. On first use (or when changing `cp_node_platform_image_tag` or `docker/Dockerfile-connect-install`), run `terraform apply` with `sync_images_to_ecr = true` (requires Docker and AWS CLI on the machine running Terraform). Hub images are mirrored from Docker Hub; the Connect image is built locally and pushed to `{prefix}/cp-connect_withplugins:latest`. CP nodes wait for both sync steps before starting.
+
+If `cp-connect_withplugins` is missing in ECR, re-run only the Connect sync:
+
+```bash
+terraform apply -replace='terraform_data.sync_ecr_connect_image[0]'
+```
 
 CP node EC2 instances are configured to:
 - Install docker and docker-compose
-- Pull Confluent Platform images from Docker Hub
+- Authenticate with ECR and pull images from your ECR repositories
 - Deploy the services using docker-compose
 
 If images are not available when the instance starts, SSH to the instance and run:

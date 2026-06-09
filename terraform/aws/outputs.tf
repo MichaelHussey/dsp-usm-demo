@@ -71,16 +71,23 @@ output "cp_nodes" {
   description = <<-EOT
     One object per cp node (order matches module.cp_node / count index).
     cluster_id is the KRaft broker CLUSTER_ID (Terraform UUID), not the Confluent Cloud cluster (see output cluster_id).
+    connect_cluster_id is the Kafka Connect worker cluster ID (assigned at runtime on the cp_node).
     SSH assumes you are logged into the bastion; key path is ~/.ssh/<key_name>.pem on the bastion.
   EOT
-  value = [for node in module.cp_node : {
-    instance_index      = node.instance_index
-    cluster_id          = node.cluster_id
-    instance_id         = node.instance_id
-    private_ip          = node.private_ip
-    subnet_id           = node.subnet_id
-    ssh_via_bastion_cmd = "ssh -i ~/.ssh/${module.keypair.key_name}.pem ec2-user@${node.private_ip}"
+  value = [for i, node in module.cp_node : {
+    instance_index       = node.instance_index
+    cluster_id           = node.cluster_id
+    connect_cluster_id   = lookup(local.connect_cluster_ids, i, null)
+    instance_id          = node.instance_id
+    private_ip           = node.private_ip
+    subnet_id            = node.subnet_id
+    ssh_via_bastion_cmd  = "ssh -i ~/.ssh/${module.keypair.key_name}.pem ec2-user@${node.private_ip}"
   }]
+}
+
+output "connect_cluster_ids" {
+  description = "Kafka Connect cluster IDs per cp_node index (same order as module.cp_node)"
+  value       = local.connect_cluster_ids
 }
 
 output "ingress_gateway_id" {
@@ -121,4 +128,14 @@ output "usm_ccloud_endpoint" {
 output "bastion_ssh_key_name" {
   description = "Name of the bastion SSH key"
   value       = aws_secretsmanager_secret.bastion_ssh_key.name
+}
+
+output "ecr_registry" {
+  description = "ECR registry URL for cp node images"
+  value       = local.ecr_registry
+}
+
+output "ecr_images" {
+  description = "ECR image URIs used by cp nodes"
+  value       = local.ecr_images
 }

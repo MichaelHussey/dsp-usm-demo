@@ -1,7 +1,7 @@
 # Register Confluent Platform clusters with USM via Confluent Cloud REST API.
 # The Confluent Terraform provider does not yet expose this resource type.
 
-resource "terraform_data" "register_usm_agent" {
+resource "terraform_data" "register_usm_kafka_cluster" {
   count = var.cp_node_count
 
   triggers_replace = [
@@ -17,7 +17,7 @@ resource "terraform_data" "register_usm_agent" {
   ]
 
   provisioner "local-exec" {
-    command = "${path.module}/scripts/register_usm_agent.sh"
+    command = "${path.module}/scripts/register_usm_kafka_cluster.sh"
     environment = {
       DISPLAY_NAME                        = "USM Demo cluster no ${count.index + 1}"
       CONFLUENT_PLATFORM_KAFKA_CLUSTER_ID = module.cp_node[count.index].cluster_id
@@ -26,6 +26,36 @@ resource "terraform_data" "register_usm_agent" {
       ENVIRONMENT_ID                      = confluent_environment.main.id
       USM_API_KEY                         = nonsensitive(var.confluent_cloud_api_key)
       USM_API_SECRET                      = nonsensitive(var.confluent_cloud_api_secret)
+    }
+  }
+}
+
+resource "terraform_data" "register_usm_connect_cluster" {
+  count = var.fetch_connect_cluster_ids ? var.cp_node_count : 0
+
+  triggers_replace = [
+    module.cp_node[count.index].cluster_id,
+    local.connect_cluster_ids[count.index],
+    confluent_api_key.cp_usm_key.id,
+    confluent_environment.main.id,
+  ]
+
+  depends_on = [
+    module.cp_node,
+    confluent_api_key.cp_usm_key,
+    confluent_role_binding.cp_usm,
+    data.external.connect_cluster_id,
+  ]
+
+  provisioner "local-exec" {
+    command = "${path.module}/scripts/register_usm_connect_cluster.sh"
+    environment = {
+      DISPLAY_NAME                          = "USM Demo cluster no ${count.index + 1}"
+      CONFLUENT_PLATFORM_KAFKA_CLUSTER_ID   = module.cp_node[count.index].cluster_id
+      CONFLUENT_PLATFORM_CONNECT_CLUSTER_ID = local.connect_cluster_ids[count.index]
+      ENVIRONMENT_ID                        = confluent_environment.main.id
+      USM_API_KEY                           = nonsensitive(var.confluent_cloud_api_key)
+      USM_API_SECRET                        = nonsensitive(var.confluent_cloud_api_secret)
     }
   }
 }

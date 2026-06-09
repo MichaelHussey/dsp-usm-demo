@@ -26,3 +26,8 @@ output "cluster_id" {
   description = "KRaft CLUSTER_ID for this cp broker (Terraform random_uuid, same as docker-compose broker CLUSTER_ID)"
   value       = random_uuid.kraft_cluster.result
 }
+
+output "ssm_parameter_name" {
+  description = "SSM parameter name where Connect cluster ID is stored"
+  value       = aws_ssm_parameter.connect_cluster_id.name
+}

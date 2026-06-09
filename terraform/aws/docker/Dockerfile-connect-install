@@ -1,0 +1,7 @@
+ARG CONNECT_BASE_IMAGE=confluentinc/cp-server-connect-base:latest-ubi8
+FROM ${CONNECT_BASE_IMAGE}
+ENV CONNECT_PLUGIN_PATH="/usr/share/java,/usr/share/confluent-hub-components"
+RUN confluent-hub install --no-prompt confluentinc/kafka-connect-mqtt:latest && \
+    confluent-hub install --no-prompt confluentinc/kafka-connect-datagen:latest && \
+    confluent-hub install --no-prompt confluentinc/kafka-connect-replicator:latest && \
+    connect-plugin-path sync-manifests --plugin-path /usr/share/confluent-hub-components

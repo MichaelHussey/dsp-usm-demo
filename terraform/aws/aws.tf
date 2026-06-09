@@ -110,19 +110,33 @@ module "cp_node" {
   source = "./modules/cp_node"
   count  = var.cp_node_count
 
+  prefix                = var.prefix
   cluster_name          = "USM Demo cluster no ${count.index + 1}"
   instance_index        = count.index
   subnet_id             = aws_subnet.private[count.index % length(aws_subnet.private)].id
   security_group_ids    = [aws_security_group.ec2.id]
-  key_name           = module.keypair.key_name
-  bootstrap_endpoint = one([for e in confluent_kafka_cluster.enterprise.endpoints : e if e.access_point_id == confluent_access_point.ingress.id]).bootstrap_endpoint
+  key_name              = module.keypair.key_name
+  bootstrap_endpoint    = one([for e in confluent_kafka_cluster.enterprise.endpoints : e if e.access_point_id == confluent_access_point.ingress.id]).bootstrap_endpoint
   api_key               = confluent_api_key.cluster_admin_key.id
   api_secret            = confluent_api_key.cluster_admin_key.secret
   usm_api_key           = confluent_api_key.cp_usm_key.id
   usm_api_secret        = confluent_api_key.cp_usm_key.secret
-  broker_image          = "confluentinc/cp-server:${var.cp_node_platform_image_tag}"
-  connect_image         = "confluentinc/cp-server-connect:${var.cp_node_platform_image_tag}"
-  schema_registry_image = "confluentinc/cp-schema-registry:${var.cp_node_platform_image_tag}"
+  broker_image          = local.ecr_images.broker
+  connect_image         = local.ecr_images.connect
+  schema_registry_image = local.ecr_images.schema_registry
+  usm_agent_image       = local.ecr_images.usm_agent
+  mqtt_image            = local.ecr_images.mosquitto
+  ecr_registry          = local.ecr_registry
+
+  depends_on = [
+    aws_ecr_repository.cp_server,
+    aws_ecr_repository.cp_connect,
+    aws_ecr_repository.cp_schema_registry,
+    aws_ecr_repository.cp_usm_agent,
+    aws_ecr_repository.mosquitto,
+    terraform_data.sync_ecr_hub_images,
+    terraform_data.sync_ecr_connect_image,
+  ]
   aws_region            = var.region
   cc_environment_id     = confluent_environment.main.id
   usm_ccloud_endpoint   = aws_route53_record.usm_api.fqdn

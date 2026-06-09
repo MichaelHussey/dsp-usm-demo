@@ -96,6 +96,18 @@ variable "cp_node_platform_image_tag" {
   default     = "latest"
 }
 
+variable "sync_images_to_ecr" {
+  description = "When true, mirror unmodified images (broker, schema-registry, usm-agent, mosquitto) from Docker Hub to ECR, build the Connect image locally with plugins, and push it to ECR. Requires Docker and AWS CLI on the machine running Terraform. Set true once per image tag or Dockerfile change; cp_nodes then pull from ECR."
+  type        = bool
+  default     = false
+}
+
+variable "fetch_connect_cluster_ids" {
+  description = "When true, poll SSM for Kafka Connect cluster IDs after cp_nodes are created and register them with USM. Requires AWS CLI during apply and may wait several minutes. Set false to skip."
+  type        = bool
+  default     = false
+}
+
 variable "usm_ccloud_endpoint" {
   description = "Confluent Cloud API host for USM agent (e.g. api.eu-north-1.AWS.private.confluent.cloud). Used for Route53 DNS and cp node config."
   type        = string

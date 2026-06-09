@@ -2,6 +2,11 @@
 # CP Node EC2 Module Variables
 # ===============================
 
+variable "prefix" {
+  description = "Prefix for resource names"
+  type        = string
+}
+
 variable "cluster_name" {
   description = "Name of the cluster (used for resource naming)"
   type        = string
@@ -80,6 +85,21 @@ variable "connect_image" {
 
 variable "schema_registry_image" {
   description = "Docker image for Schema Registry (e.g. confluentinc/cp-schema-registry:latest)"
+  type        = string
+}
+
+variable "usm_agent_image" {
+  description = "Docker image for USM agent"
+  type        = string
+}
+
+variable "mqtt_image" {
+  description = "Docker image for Mosquitto MQTT broker"
+  type        = string
+}
+
+variable "ecr_registry" {
+  description = "ECR registry host (for docker login on the cp_node)"
   type        = string
 }
 

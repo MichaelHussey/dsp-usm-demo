@@ -7,8 +7,8 @@ echo "[usm-demo] running dnf update..."
 sudo dnf update -y 
 
 # Install docker - following instructions on https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-docker.html
-# Install required packages (use df instead of yum)
-sudo dnf install -y docker
+# Install required packages
+sudo dnf install -y docker aws-cli
 sudo service docker start
 sudo systemctl enable docker
 
@@ -18,14 +18,6 @@ sudo usermod -aG docker ec2-user
 # Docker compose is not available in the repo so we need to install it manually
 sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
-
-# The version of buildx in the image is too old for the docker-compose file to use, so we need to install it manually
-# see https://github.com/amazonlinux/amazon-linux-2023/issues/1032
-sudo mkdir -p ~/.docker/cli-plugins
-ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-BUILDX_URL=$(curl -s https://api.github.com/repos/docker/buildx/releases/latest | grep "browser_download_url.*linux-$ARCH" | cut -d '"' -f 4)
-sudo curl -L $BUILDX_URL -o ~/.docker/cli-plugins/docker-buildx
-sudo chmod +x ~/.docker/cli-plugins/docker-buildx
 
 # Create directory for application and MQTT config
 mkdir -p /opt/usm-demo/mosquitto/{config,data,log}
@@ -54,15 +46,6 @@ persistence_location /mosquitto/data/
 log_dest file /mosquitto/log/mosquitto.log
 log_type all
 MQTTCONF
-
-cat > /opt/usm-demo/Dockerfile-connect-install <<'CONNECTINSTALL'
-FROM confluentinc/cp-server-connect-base:latest-ubi8
-ENV CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
-RUN /usr/bin/confluent-hub install confluentinc/kafka-connect-mqtt:latest --no-prompt
-RUN /usr/bin/confluent-hub install confluentinc/kafka-connect-datagen:latest --no-prompt
-RUN /usr/bin/confluent-hub install confluentinc/kafka-connect-replicator:latest --no-prompt
-RUN /usr/bin/connect-plugin-path sync-manifests --plugin-path /usr/share/confluent-hub-components
-CONNECTINSTALL
 
 # Create docker-compose file
 cat > /opt/usm-demo/docker-compose.yml <<COMPOSEFILE
@@ -130,10 +113,7 @@ services:
     restart: unless-stopped
 
   connect:
-    image: ${connect_image}_local
-    build:
-      context: /opt/usm-demo
-      dockerfile: Dockerfile-connect-install
+    image: ${connect_image}
     hostname: connect
     container_name: connect-usm-demo
     depends_on:
@@ -187,7 +167,7 @@ services:
     restart: unless-stopped
 
   usm-agent:
-    image: confluentinc/cp-usm-agent:latest 
+    image: ${usm_agent_image}
     hostname: usm-agent
     container_name: usm-agent
     depends_on:
@@ -203,7 +183,7 @@ services:
     restart: unless-stopped
 
   mqtt:
-    image: eclipse-mosquitto:2
+    image: ${mqtt_image}
     hostname: mqtt
     container_name: mqtt
     ports:
@@ -345,26 +325,30 @@ echo "alias usm-demo-start='cd /opt/usm-demo && ./start.sh'" >> /home/ec2-user/.
 echo "alias usm-demo-stop='cd /opt/usm-demo && ./stop.sh'" >> /home/ec2-user/.bashrc
 echo "alias usm-demo-logs='cd /opt/usm-demo && docker-compose logs -f'" >> /home/ec2-user/.bashrc
 
-# Pull Docker images
-echo "Pulling images..."
-docker pull ${broker_image} || echo "Warning: broker image not found"
-docker pull ${connect_image} || echo "Warning: connect image not found"
-docker pull ${schema_registry_image} || echo "Warning: schema-registry image not found"
-echo "Pulling MQTT image..."
-docker pull eclipse-mosquitto:2 || echo "Warning: mosquitto image not found"
+# Pull Docker images from ECR
+echo "Logging in to ECR..."
+aws ecr get-login-password --region ${aws_region} | docker login --username AWS --password-stdin ${ecr_registry}
+echo "Pulling images from ECR..."
+docker pull ${broker_image} || echo "Warning: broker image not found in ECR"
+docker pull ${connect_image} || echo "Warning: connect image not found in ECR"
+docker pull ${schema_registry_image} || echo "Warning: schema-registry image not found in ECR"
+docker pull ${usm_agent_image} || echo "Warning: usm-agent image not found in ECR"
+docker pull ${mqtt_image} || echo "Warning: mosquitto image not found in ECR"
 
 
 # Start services (only if images were successfully pulled)
 if docker image inspect "${broker_image}" >/dev/null 2>&1 && \
    docker image inspect "${connect_image}" >/dev/null 2>&1 && \
-   docker image inspect "${schema_registry_image}" >/dev/null 2>&1; then
+   docker image inspect "${schema_registry_image}" >/dev/null 2>&1 && \
+   docker image inspect "${usm_agent_image}" >/dev/null 2>&1 && \
+   docker image inspect "${mqtt_image}" >/dev/null 2>&1; then
   echo "All images found, starting services..."
   cd /opt/usm-demo
   source .env
   docker-compose up -d
   echo "USM-demo services started successfully!"
 else
-  echo "Warning: Some images are missing. Pull them from Docker Hub, then run:"
+  echo "Warning: Some images are missing in ECR. Run terraform apply with sync_images_to_ecr = true, then run:"
   echo "  cd /opt/usm-demo && ./start.sh"
 fi
 
@@ -386,6 +370,18 @@ while ! docker-compose exec connect curl -s http://connect:8083/connector-plugin
   sleep 10
 done
 echo "Connect worker is ready!"
+
+# Grab the connect cluster id and persist for Terraform to read via SSM
+CONNECT_CLUSTER_ID=$(docker-compose exec connect curl -s http://connect:8083/ | jq -r '.cluster.id')
+echo "Connect cluster ID: $CONNECT_CLUSTER_ID"
+echo "$CONNECT_CLUSTER_ID" > /opt/usm-demo/connect_cluster_id
+chmod 644 /opt/usm-demo/connect_cluster_id
+aws ssm put-parameter \
+  --region "${aws_region}" \
+  --name "${ssm_parameter_name}" \
+  --value "$CONNECT_CLUSTER_ID" \
+  --type String \
+  --overwrite
 
 # Deploy the sample data
 /opt/usm-demo/deploy-sample-data.sh
