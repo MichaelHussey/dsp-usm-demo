@@ -18,13 +18,13 @@ ecr_login() {
 }
 
 resolve_connect_base_image() {
-  local candidate="confluentinc/cp-server-connect-base:${IMAGE_TAG}-ubi8"
+  local candidate="confluentinc/cp-server-connect-base:${IMAGE_TAG}"
   if docker manifest inspect "$candidate" >/dev/null 2>&1; then
     echo "$candidate"
     return
   fi
-  echo "Warning: ${candidate} not found; falling back to latest-ubi8 connect base" >&2
-  echo "confluentinc/cp-server-connect-base:latest-ubi8"
+  echo "Warning: ${candidate} not found; falling back to 8.2.1 connect base" >&2
+  echo "confluentinc/cp-server-connect-base:8.2.1"
 }
 
 verify_image_in_ecr() {
@@ -43,17 +43,25 @@ ecr_login
 CONNECT_BASE="$(resolve_connect_base_image)"
 CONNECT_TARGET="${ECR_REGISTRY}/${ECR_REPO_CONNECT}:${CONNECT_TAG}"
 
+build_args=(
+  --platform "$DOCKER_PLATFORM"
+  --pull
+  --build-arg "CONNECT_BASE_IMAGE=${CONNECT_BASE}"
+  -f "${DOCKER_DIR}/Dockerfile-connect-install"
+  -t "$CONNECT_TARGET"
+  "$DOCKER_DIR"
+)
+
+if [[ "${DOCKER_BUILD_NO_CACHE:-false}" == "true" ]]; then
+  echo "Force rebuild enabled: docker build --no-cache"
+  build_args=(--no-cache "${build_args[@]}")
+fi
+
 echo "Building Connect image locally (${DOCKER_PLATFORM})"
 echo "  base:   ${CONNECT_BASE}"
 echo "  target: ${CONNECT_TARGET}"
 
-docker build \
-  --platform "$DOCKER_PLATFORM" \
-  --pull \
-  --build-arg "CONNECT_BASE_IMAGE=${CONNECT_BASE}" \
-  -f "${DOCKER_DIR}/Dockerfile-connect-install" \
-  -t "$CONNECT_TARGET" \
-  "$DOCKER_DIR"
+docker build "${build_args[@]}"
 
 docker push "$CONNECT_TARGET"
 

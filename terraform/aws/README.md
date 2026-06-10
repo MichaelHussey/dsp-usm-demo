@@ -120,6 +120,16 @@ If `cp-connect_withplugins` is missing in ECR, re-run only the Connect sync:
 terraform apply -replace='terraform_data.sync_ecr_connect_image[0]'
 ```
 
+To force a fresh Connect build (ignore Docker layer cache), set in `terraform.tfvars`:
+
+```hcl
+connect_image_rebuild_token = "2"  # bump any time you need a rebuild
+connect_image_force_rebuild = true
+sync_images_to_ecr = true
+```
+
+Then run `terraform apply`. Set `connect_image_force_rebuild = false` after the rebuild completes.
+
 CP node EC2 instances are configured to:
 - Install docker and docker-compose
 - Authenticate with ECR and pull images from your ECR repositories

@@ -13,6 +13,7 @@ locals {
     ECR_REPO_MOSQUITTO       = aws_ecr_repository.mosquitto.name
     CONNECT_TAG              = "latest"
     DOCKER_PLATFORM          = "linux/amd64"
+    DOCKER_BUILD_NO_CACHE    = tostring(var.connect_image_force_rebuild)
   }
 }
 
@@ -45,6 +46,8 @@ resource "terraform_data" "sync_ecr_connect_image" {
 
   triggers_replace = [
     var.cp_node_platform_image_tag,
+    var.connect_image_rebuild_token,
+    var.connect_image_force_rebuild,
     filemd5("${path.module}/docker/Dockerfile-connect-install"),
     aws_ecr_repository.cp_connect.repository_url,
   ]

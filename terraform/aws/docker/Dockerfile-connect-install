@@ -1,4 +1,4 @@
-ARG CONNECT_BASE_IMAGE=confluentinc/cp-server-connect-base:latest-ubi8
+ARG CONNECT_BASE_IMAGE=confluentinc/cp-server-connect-base:${var.cp_node_platform_image_tag}
 FROM ${CONNECT_BASE_IMAGE}
 ENV CONNECT_PLUGIN_PATH="/usr/share/java,/usr/share/confluent-hub-components"
 RUN confluent-hub install --no-prompt confluentinc/kafka-connect-mqtt:latest && \

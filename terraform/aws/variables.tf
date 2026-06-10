@@ -102,6 +102,18 @@ variable "sync_images_to_ecr" {
   default     = false
 }
 
+variable "connect_image_rebuild_token" {
+  description = "Change this value to force a Connect image rebuild on the next apply (requires sync_images_to_ecr = true), even when the Dockerfile and platform tag are unchanged."
+  type        = string
+  default     = ""
+}
+
+variable "connect_image_force_rebuild" {
+  description = "When true with sync_images_to_ecr, rebuild the Connect image with docker build --no-cache (slower but ignores local Docker layer cache)."
+  type        = bool
+  default     = false
+}
+
 variable "usm_ccloud_endpoint" {
   description = "Confluent Cloud API host for USM agent (e.g. api.eu-north-1.AWS.private.confluent.cloud). Used for Route53 DNS and cp node config."
   type        = string

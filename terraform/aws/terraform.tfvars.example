@@ -25,6 +25,8 @@ vpc_cidr = "10.0.0.0/16"
 cp_node_count = 1  # Number of cp node EC2 instances (0-10, distributed across subnets)
 # cp_node_platform_image_tag = "latest"  # Confluent Platform image tag (e.g. 7.6.0)
 # sync_images_to_ecr = true  # Mirror Hub images to ECR + build Connect locally (once per tag; requires Docker + AWS CLI)
+# connect_image_rebuild_token = "1"  # Bump to force Connect image rebuild
+# connect_image_force_rebuild = true  # Rebuild with --no-cache (slower; use with sync_images_to_ecr)
 # fetch_connect_cluster_ids = true  # Poll SSM for Connect cluster IDs and register with USM (slow; requires AWS CLI)
 
 # Confluent Cloud API host for USM agent (PrivateLink)
