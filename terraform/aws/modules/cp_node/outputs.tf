@@ -27,7 +27,7 @@ output "cluster_id" {
   value       = random_uuid.kraft_cluster.result
 }
 
-output "ssm_parameter_name" {
-  description = "SSM parameter name where Connect cluster ID is stored"
-  value       = aws_ssm_parameter.connect_cluster_id.name
+output "connect_cluster_id" {
+  description = "Kafka Connect cluster ID (from SSM after instance bootstrap, when fetch_connect_cluster_id is true)"
+  value       = var.connect_cluster_id
 }

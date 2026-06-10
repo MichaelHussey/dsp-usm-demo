@@ -42,7 +42,7 @@ resource "aws_instance" "cp_node" {
     ecr_registry             = var.ecr_registry
     aws_region               = var.aws_region
     cluster_id               = random_uuid.kraft_cluster.result
-    ssm_parameter_name       = aws_ssm_parameter.connect_cluster_id.name
+    connect_cluster_id       = var.connect_cluster_id
   }))
 
   tags = {

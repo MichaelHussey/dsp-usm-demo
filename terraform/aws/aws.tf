@@ -126,8 +126,8 @@ module "cp_node" {
   schema_registry_image = local.ecr_images.schema_registry
   usm_agent_image       = local.ecr_images.usm_agent
   mqtt_image            = local.ecr_images.mosquitto
-  ecr_registry          = local.ecr_registry
-
+  ecr_registry              = local.ecr_registry
+  connect_cluster_id        = "compose-connect-group-${count.index + 1}"
   depends_on = [
     aws_ecr_repository.cp_server,
     aws_ecr_repository.cp_connect,

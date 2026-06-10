@@ -77,7 +77,7 @@ output "cp_nodes" {
   value = [for i, node in module.cp_node : {
     instance_index       = node.instance_index
     cluster_id           = node.cluster_id
-    connect_cluster_id   = lookup(local.connect_cluster_ids, i, null)
+    connect_cluster_id   = node.connect_cluster_id
     instance_id          = node.instance_id
     private_ip           = node.private_ip
     subnet_id            = node.subnet_id
@@ -85,10 +85,6 @@ output "cp_nodes" {
   }]
 }
 
-output "connect_cluster_ids" {
-  description = "Kafka Connect cluster IDs per cp_node index (same order as module.cp_node)"
-  value       = local.connect_cluster_ids
-}
 
 output "ingress_gateway_id" {
   description = "ID of the Confluent inbound PrivateLink gateway"

@@ -123,7 +123,7 @@ services:
     environment:
       CONNECT_BOOTSTRAP_SERVERS: 'broker:29092'
       CONNECT_REST_ADVERTISED_HOST_NAME: connect
-      CONNECT_GROUP_ID: compose-connect-group
+      CONNECT_GROUP_ID: ${connect_cluster_id}
       CONNECT_CONFIG_STORAGE_TOPIC: docker-connect-configs
       CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_OFFSET_FLUSH_INTERVAL_MS: 10000
@@ -140,16 +140,25 @@ services:
       CONNECT_CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY: "All"
 
       # USM Agent Telemetry Configuration (Connect)
+      # Need to pass the underscore mangling in https://github.com/confluentinc/cp-docker-utils/blob/master/cmd/ub/ub.go
       CONNECT_METRIC_REPORTERS: "io.confluent.telemetry.reporter.TelemetryReporter"
-      CONNECT_TELEMETRY_EXPORTER_\_USM_ENABLED: 'true'
-      CONNECT_TELEMETRY_EXPORTER_\_USM_TYPE: 'http'
-      CONNECT_TELEMETRY_EXPORTER_\_USM_CLIENT_BASE_URL: 'http://usm-agent:10000'
-      CONNECT_TELEMETRY_EXPORTER_\_USM_API_KEY: 'dummy'
-      CONNECT_TELEMETRY_EXPORTER_\_USM_API_SECRET: 'dummy'
-      CONNECT_TELEMETRY_EXPORTER_\_USM_EVENTS_ENABLED: 'true'
-      CONNECT_TELEMETRY_EXPORTER_\_USM_EVENTS_CLIENT_BASE_URL: 'http://usm-agent:10000'
-      CONNECT_TELEMETRY_EXPORTER_\_USM_EVENTS_API_KEY: 'dummy'
-      CONNECT_TELEMETRY_EXPORTER_\_USM_EVENTS_API_SECRET: 'dummy'
+      CONNECT_CONFLUENT_TELEMETRY_EXPORTER.__USM_ENABLED: 'true'
+      CONNECT_CONFLUENT_TELEMETRY_EXPORTER.__USM_TYPE: 'http'
+      CONNECT_CONFLUENT_TELEMETRY_EXPORTER.__USM_CLIENT_BASE_URL: 'http://usm-agent:10000'
+      CONNECT_CONFLUENT_TELEMETRY_EXPORTER.__USM_API_KEY: 'dummy'
+      CONNECT_CONFLUENT_TELEMETRY_EXPORTER.__USM_API_SECRET: 'dummy'
+      CONNECT_CONFLUENT_TELEMETRY_EXPORTER.__USM_EVENTS_ENABLED: 'true'
+      CONNECT_CONFLUENT_TELEMETRY_EXPORTER.__USM_EVENTS_CLIENT_BASE_URL: 'http://usm-agent:10000'
+      CONNECT_CONFLUENT_TELEMETRY_EXPORTER.__USM_EVENTS_API_KEY: 'dummy'
+      CONNECT_CONFLUENT_TELEMETRY_EXPORTER.__USM_EVENTS_API_SECRET: 'dummy'
+
+      CONNECT_CONFLUENT_CONNECT_METADATA_EVENTS_ENABLED: 'true'
+      CONNECT_CONFLUENT_CONNECT_METADATA_EVENTS_CLIENT_BASE_URL: 'http://usm-agent:10000'
+      CONNECT_CONFLUENT_CONNECT_METADATA_EVENTS_EMITTER_TYPE: 'cloud.events.http'
+      CONNECT_CONFLUENT_CONNECT_METADATA_EVENTS_EVENT_INTERVAL_SECONDS: 3
+      CONNECT_CONFLUENT_CONNECT_METADATA_EVENTS_API_KEY: 'dummy'
+      CONNECT_CONFLUENT_CONNECT_METADATA_EVENTS_API_SECRET: 'dummy'
+      
     restart: unless-stopped
 
   schema-registry-native:
@@ -370,18 +379,6 @@ while ! docker-compose exec connect curl -s http://connect:8083/connector-plugin
   sleep 10
 done
 echo "Connect worker is ready!"
-
-# Grab the connect cluster id and persist for Terraform to read via SSM
-CONNECT_CLUSTER_ID=$(docker-compose exec connect curl -s http://connect:8083/ | jq -r '.cluster.id')
-echo "Connect cluster ID: $CONNECT_CLUSTER_ID"
-echo "$CONNECT_CLUSTER_ID" > /opt/usm-demo/connect_cluster_id
-chmod 644 /opt/usm-demo/connect_cluster_id
-aws ssm put-parameter \
-  --region "${aws_region}" \
-  --name "${ssm_parameter_name}" \
-  --value "$CONNECT_CLUSTER_ID" \
-  --type String \
-  --overwrite
 
 # Deploy the sample data
 /opt/usm-demo/deploy-sample-data.sh

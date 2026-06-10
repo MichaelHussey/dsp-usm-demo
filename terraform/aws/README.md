@@ -1,7 +1,7 @@
 # Confluent Cloud Enterprise Cluster - Terraform Configuration
 
 This Terraform configuration creates an Enterprise Kafka cluster on Confluent Cloud in AWS.
-Then it deploys a VM in a private network with access to the CC cluster.
+Then it deploys one or more VMs in a private network with access to the CC cluster.
 And it deploys a bastion host to allow ssh access to the VM.
 
 ## Prerequisites

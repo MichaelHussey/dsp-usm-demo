@@ -18,6 +18,13 @@ variable "instance_index" {
   default     = 0
 }
 
+variable "connect_cluster_id" {
+  description = "Connect cluster ID"
+  type        = string
+  default     = "compose-connect-group"
+  nullable    = true
+}
+
 variable "subnet_id" {
   description = "ID of the private subnet for the EC2 instance"
   type        = string
