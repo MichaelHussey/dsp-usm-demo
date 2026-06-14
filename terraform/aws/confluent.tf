@@ -1,19 +1,24 @@
-# Environment
+# Environment with Stream Governance Advanced (required for schema rules, contexts, etc.)
 resource "confluent_environment" "main" {
   display_name = "${var.environment_name}-${random_id.env_display_id.hex}"
+
+  stream_governance {
+    package = "ADVANCED"
+  }
 
   lifecycle {
     prevent_destroy = false
   }
 }
 
-/**
-data "confluent_schema_registry_cluster" "cc_sr" {
-  environment {
-    id = confluent_environment.main.id
-  }
+module "confluent_schema_registry" {
+  source = "./modules/confluent_schema_registry"
+
+  environment_id = confluent_environment.main.id
+  cluster_name   = var.cluster_name
+  context_prefix = var.cc_sr_context_prefix
+  region         = var.region
 }
-*/
 # Enterprise Kafka Cluster
 resource "confluent_kafka_cluster" "enterprise" {
   display_name = var.cluster_name

@@ -140,4 +140,5 @@ module "cp_node" {
   aws_region            = var.region
   cc_environment_id     = confluent_environment.main.id
   usm_ccloud_endpoint   = aws_route53_record.usm_api.fqdn
+  cc_sr = module.confluent_schema_registry.main
 }

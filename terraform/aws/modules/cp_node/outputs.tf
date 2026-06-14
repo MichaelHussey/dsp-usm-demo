@@ -31,3 +31,8 @@ output "connect_cluster_id" {
   description = "Kafka Connect cluster ID (from SSM after instance bootstrap, when fetch_connect_cluster_id is true)"
   value       = var.connect_cluster_id
 }
+
+output "cc_sr_context_prefix" {
+  description = "Context prefix for Confluent Cloud Schema Registry (not sensitive; derived via nonsensitive from cc_sr)"
+  value       = nonsensitive(var.cc_sr.context_prefix)
+}

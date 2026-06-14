@@ -82,6 +82,7 @@ output "cp_nodes" {
     private_ip           = node.private_ip
     subnet_id            = node.subnet_id
     ssh_via_bastion_cmd  = "ssh -i ~/.ssh/${module.keypair.key_name}.pem ec2-user@${node.private_ip}"
+    sr_context_prefix    = var.cc_sr_context_prefix
   }]
 }
 

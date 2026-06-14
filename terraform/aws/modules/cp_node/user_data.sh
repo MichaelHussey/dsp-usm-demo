@@ -118,6 +118,8 @@ services:
     container_name: connect-usm-demo
     depends_on:
       - broker
+      - schema-registry
+      - usm-agent
     ports:
       - "8083:8083"
     environment:
@@ -161,18 +163,40 @@ services:
       
     restart: unless-stopped
 
-  schema-registry-native:
+  schema-registry:
     image: ${schema_registry_image}
     hostname: schema-registry
     container_name: schema-registry
     depends_on:
       - broker
+      - usm-agent
     ports:
       - "8081:8081"
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+
+
+      # Schema Registry Configuration thanks to Dan Richards - https://github.com/danjrichards/schema-forwarding
+      # Enable USM and Schema Importer plugins (both JARs are already in the image)
+      SCHEMA_REGISTRY_RESOURCE_EXTENSION_CLASS: 'io.confluent.schema.registry.usm.UsmSchemaRegistryExtension,io.confluent.schema.importer.SchemaImporterResourceExtension'
+
+      # Allow mode changes (needed for FORWARD)
+      SCHEMA_REGISTRY_MODE_MUTABILITY: "true"
+
+      # USM Plugin Configuration - Remote Confluent Cloud Schema Registry
+      # Credentials loaded from .env file
+      SCHEMA_REGISTRY_USM_SCHEMA_REGISTRY_REMOTE_ENDPOINT: "${cc_sr_endpoint}"
+      SCHEMA_REGISTRY_USM_SCHEMA_REGISTRY_REMOTE_API_KEY: "${cc_sr_api_key}"
+      SCHEMA_REGISTRY_USM_SCHEMA_REGISTRY_REMOTE_API_SECRET: "${cc_sr_api_secret}"
+
+      # Optional: Remote context prefix (e.g., "site1:.") - adds prefix to subjects when forwarding
+      SCHEMA_REGISTRY_USM_SCHEMA_REGISTRY_REMOTE_CONTEXT_PREFIX: "${cc_sr_context_prefix}"
+
+      # Schema Importer Configuration - Required for encrypting stored credentials
+      SCHEMA_REGISTRY_PASSWORD_ENCODER_SECRET: "${cc_sr_password_encoder_secret}"
+
     restart: unless-stopped
 
   usm-agent:

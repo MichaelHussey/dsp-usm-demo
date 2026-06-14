@@ -41,8 +41,13 @@ resource "aws_instance" "cp_node" {
     mqtt_image               = var.mqtt_image
     ecr_registry             = var.ecr_registry
     aws_region               = var.aws_region
-    cluster_id               = random_uuid.kraft_cluster.result
-    connect_cluster_id       = var.connect_cluster_id
+    cluster_id                    = random_uuid.kraft_cluster.result
+    connect_cluster_id            = var.connect_cluster_id
+    cc_sr_endpoint                = var.cc_sr.private_endpoint
+    cc_sr_api_key                 = var.cc_sr.api_key
+    cc_sr_api_secret              = var.cc_sr.api_secret
+    cc_sr_context_prefix          = var.cc_sr.context_prefix
+    cc_sr_password_encoder_secret = var.cc_sr.password_encoder_secret
   }))
 
   tags = {

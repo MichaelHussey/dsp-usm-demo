@@ -114,3 +114,16 @@ variable "aws_region" {
   description = "AWS region"
   type        = string
 }
+
+variable "cc_sr" {
+  description = "Confluent Cloud Schema Registry connection details for schema forwarding"
+  type = object({
+    endpoint                = string
+    private_endpoint        = string
+    api_key                 = string
+    api_secret              = string
+    context_prefix          = string
+    password_encoder_secret = string
+  })
+  sensitive = true
+}
