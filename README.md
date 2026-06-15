@@ -13,13 +13,13 @@ Spins up a number of EC2 instances in order to demonstrate [Unified Stream Manag
 
 Make a copy of the 'terraform/aws/terraform.tfvars.example' file and set your Confluent Cloud credientials, chose a deployment region, give the project a name etc.
 
-''''
+````
 cd terraform/aws
 cp terraform.tfvars.example terraform.tfvars
 terraform init
 terraform plan
 terraform apply
-''''
+````
 
 
 Notice 

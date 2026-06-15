@@ -123,5 +123,5 @@ variable "usm_ccloud_endpoint" {
 variable "cc_sr_context_prefix" {
   description = "Remote context prefix for USM schema forwarding to Confluent Cloud Schema Registry (e.g. site1:.)"
   type        = string
-  default     = "default:."
+  default     = "usm"
 }

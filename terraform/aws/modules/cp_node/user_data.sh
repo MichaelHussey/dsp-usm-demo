@@ -197,6 +197,8 @@ services:
       # Schema Importer Configuration - Required for encrypting stored credentials
       SCHEMA_REGISTRY_PASSWORD_ENCODER_SECRET: "${cc_sr_password_encoder_secret}"
 
+      # Workaround for SETU-2927 - https://confluent.atlassian.net/browse/SETU-2927
+      SCHEMA_REGISTRY_USM_SCHEMA_REGISTRY_REMOTE_ENDPOINT_VALIDATION_ENABLED: 'false'
     restart: unless-stopped
 
   usm-agent:
@@ -404,5 +406,45 @@ while ! docker-compose exec connect curl -s http://connect:8083/connector-plugin
 done
 echo "Connect worker is ready!"
 
-# Deploy the sample data
+cat >> /opt/usm-demo/set-sr-forwarding.sh <<'SETCSRFORWARDINGBODY'
+docker-compose exec schema-registry curl --request PUT \
+  -H "Content-Type: application/vnd.schemaregistry.v1+json" \
+  --data '{"mode":"FORWARD"}' \
+  http://schema-registry:8081/mode/:.__GLOBAL:
+SETCSRFORWARDINGBODY
+
+chmod +x /opt/usm-demo/set-sr-forwarding.sh
+chown -R ec2-user:ec2-user /opt/usm-demo
+
+# Wait for the Schema Registry to be ready
+echo "Waiting for the Schema Registry to be ready..."
+while ! docker-compose exec schema-registry curl -s http://schema-registry:8081/mode | grep -q "READWRITE"; do
+  echo "Schema Registry not ready yet..."
+  sleep 10
+done
+echo "Schema Registry is ready!"
+/opt/usm-demo/set-sr-forwarding.sh
+
+cat >> /opt/usm-demo/enable-schema-linking.sh <<'ENABLESCHEMALINKINGBODY'
+docker-compose exec schema-registry curl --request POST \
+  -H "Content-Type: application/vnd.schemaregistry.v1+json" \
+  --data "{
+    \"name\": \"usm-importer\",
+    \"subjects\": [\":*:\"],
+    \"config\": {
+      \"schema.registry.url\": \"${cc_sr_endpoint}\",
+      \"basic.auth.credentials.source\": \"USER_INFO\",
+      \"basic.auth.user.info\": \"${cc_sr_api_key}:${cc_sr_api_secret}\"
+    }
+  }" \
+  http://schema-registry:8081/importers
+ENABLESCHEMALINKINGBODY
+
+chmod +x /opt/usm-demo/enable-schema-linking.sh
+chown -R ec2-user:ec2-user /opt/usm-demo
+
+/opt/usm-demo/enable-schema-linking.sh
+echo "Schema linking enabled!"
+
+# Deploy the sample data DataGen connector
 /opt/usm-demo/deploy-sample-data.sh

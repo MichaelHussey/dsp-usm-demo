@@ -39,6 +39,27 @@ resource "confluent_api_key" "cp_sr" {
   depends_on = [confluent_role_binding.cp_sr]
 }
 
+data "confluent_endpoint" "sr" {
+  filter {
+    environment {
+      id = var.environment_id
+    }
+
+    service    = "SCHEMA_REGISTRY"
+    resource   = data.confluent_schema_registry_cluster.main.id
+    cloud      = "AWS"         # "AWS" | "AZURE" | "GCP"
+    region     = var.region        # e.g. "westus3"
+    is_private = true
+  }
+}
+locals {
+  cc_sr_private_endpoint = one([
+    for ep in data.confluent_endpoint.sr.endpoints : ep.endpoint
+    if ep.endpoint_type == "REST"
+    && ep.resource != null
+    && ep.resource[0].id == data.confluent_schema_registry_cluster.main.id
+  ])
+}
 resource "random_password" "password_encoder_secret" {
   length  = 32
   special = false

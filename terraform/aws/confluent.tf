@@ -11,13 +11,13 @@ resource "confluent_environment" "main" {
   }
 }
 
-module "confluent_schema_registry" {
+module "confluent_schema_registry" {  
   source = "./modules/confluent_schema_registry"
 
-  environment_id = confluent_environment.main.id
-  cluster_name   = var.cluster_name
-  context_prefix = var.cc_sr_context_prefix
-  region         = var.region
+  environment_id            = confluent_environment.main.id
+  cluster_name                = var.cluster_name
+  context_prefix              = var.cc_sr_context_prefix
+  region                      = var.region
 }
 # Enterprise Kafka Cluster
 resource "confluent_kafka_cluster" "enterprise" {

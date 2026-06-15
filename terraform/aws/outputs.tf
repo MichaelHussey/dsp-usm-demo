@@ -136,3 +136,9 @@ output "ecr_images" {
   description = "ECR image URIs used by cp nodes"
   value       = local.ecr_images
 }
+
+output "cc_sr" {
+  description = "Confluent Cloud Schema Registry connection details for cp nodes"
+  value       = module.confluent_schema_registry.main
+  sensitive = true
+}
